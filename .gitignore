@@ -6,5 +6,24 @@
 # Datasource local storage ignored files
 /dataSources/
 /dataSources.local.xml
-/.idea/*
-/code.zip/
+.idea
+code.zip/
+lines (15 sloc)  154 Bytes
+
+.eunit
+*.o
+*.beam
+*.plt
+erl_crash.dump
+.concrete/DEV_MODE
+
+# rebar 2.x
+.rebar
+rel/example_project
+ebin/*.beam
+deps
+
+# rebar 3
+.rebar3
+_build/
+_checkouts/
