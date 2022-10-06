@@ -11,8 +11,8 @@
 %% Time Complexity is O(n) rather than O(n^2)
 -spec checkDuplicate(List :: list()) -> boolean().
 checkDuplicate(List) ->
-  MyMap = dict:from_list(List),
-  dict:size(MyMap) == length(List).
+  MyMap = maps:from_list(List),
+  maps:size(MyMap) == length(List).
 
 
 %% For every shortcode, we save it in a tuple {Emoji, [alias], [analysis], root}.
@@ -28,7 +28,7 @@ start(Initial) ->
             {ShortCode, Emo} -> {ShortCode, {Emo, [], [], ShortCode}}
           end
         end, Initial),
-      EmojiDict = dict:from_list(EmojiList),
+      EmojiDict = maps:from_list(EmojiList),
       try
         E = spawn(fun() -> loop(EmojiDict) end),
         {ok, E}
@@ -95,7 +95,7 @@ stop(E) ->
   end.
 
 inEmojiDict(Short, EmojiDict) ->
-  dict:is_key(Short, EmojiDict).
+  maps:is_key(Short, EmojiDict).
 
 
 updateAnalysisState(FuncList, ShortCode) ->
@@ -121,8 +121,9 @@ sameLabelInFuncList(Label, FuncList) ->
   end.
 
 getRealData(ShortCode, EmojiDict) ->
-  {_, _, _, Root} = dict:fetch(ShortCode, EmojiDict),
-  dict:fetch(Root, EmojiDict).
+  {_, _, _, Root} = maps:get(ShortCode, EmojiDict),
+  maps:get(Root, EmojiDict).
+
 
 getLabelAndState(FuncList) ->
   lists:map(
@@ -148,7 +149,7 @@ deleteShort(EmojiDict, List) ->
   case List of
     [] -> EmojiDict;
     [First | ListRest] ->
-      deleteShort(dict:erase(First, EmojiDict), ListRest)
+      deleteShort(maps:remove(First, EmojiDict), ListRest)
   end.
 
 loop(EmojiDict) ->
@@ -157,7 +158,7 @@ loop(EmojiDict) ->
       case inEmojiDict(Short, EmojiDict) of
         false ->
           From ! {self(), ok},
-          NewEmojiDict = dict:append(Short, {Emo, [], [], Short}, EmojiDict),
+          NewEmojiDict = maps:put(Short, {Emo, [], [], Short}, EmojiDict),
           loop(NewEmojiDict);
         true ->
           From ! {self(), {error, "Same shortcode, should not register it again!"}},
@@ -176,10 +177,12 @@ loop(EmojiDict) ->
               loop(EmojiDict);
             false ->
               From ! {self(), ok},
-              {Emo, AliasList, AnalysisList, Root} = dict:fetch(Short1, EmojiDict),
-              NewEmojiDict = dict:store(Root, {Emo, [Short2 | AliasList], AnalysisList, Root}, EmojiDict),
-              NewEmojiDict2 = dict:store(Short2, {Emo, [], [], Root}, NewEmojiDict),
-              loop(NewEmojiDict2)
+              case getRealData(Short1, EmojiDict) of
+                {Emo, AliasList, AnalysisList, Root} ->
+                  NewEmojiDict = maps:put(Root, {Emo, [Short2 | AliasList], AnalysisList, Root}, EmojiDict),
+                  NewEmojiDict2 = maps:put(Short2, {Emo, [], [], Root}, NewEmojiDict),
+                  loop(NewEmojiDict2)
+              end
           end
       end;
 
@@ -199,9 +202,9 @@ loop(EmojiDict) ->
           loop(EmojiDict);
         true ->
           {Emoji, AliasList, FuncList, Root} = getRealData(Short, EmojiDict),
-          NewFuncList = updateAnalysisState(FuncList, Short),
-          NewEmojiDict = dict:store(Root, {Emoji, AliasList, NewFuncList, Root}, EmojiDict),
           From ! {self(), {ok, Emoji}},
+          NewFuncList = updateAnalysisState(FuncList, Short),
+          NewEmojiDict = maps:put(Root, {Emoji, AliasList, NewFuncList, Root}, EmojiDict),
           loop(NewEmojiDict)
       end;
 
@@ -219,7 +222,7 @@ loop(EmojiDict) ->
               From ! {self(), {error, "The Label is already registered!"}},
               loop(EmojiDict);
             false ->
-              NewEmojiDict = dict:store(Root, {Emo, AliasList, [{Fun, Label, Init} |FuncList], Root} , EmojiDict),
+              NewEmojiDict = maps:put(Root, {Emo, AliasList, [{Fun, Label, Init} |FuncList], Root} , EmojiDict),
               From ! {self(), ok},
               loop(NewEmojiDict)
           end
@@ -242,7 +245,7 @@ loop(EmojiDict) ->
         true ->
           {Emo, AliasList, FuncList, Root} = getRealData(Short, EmojiDict),
           NewFuncList = removeElement(FuncList, Label),
-          NewEmojiDict = dict:store(Root, {Emo, AliasList, NewFuncList, Root}, EmojiDict),
+          NewEmojiDict = maps:put(Root, {Emo, AliasList, NewFuncList, Root}, EmojiDict),
           loop(NewEmojiDict)
       end;
 
