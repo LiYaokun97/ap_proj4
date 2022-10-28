@@ -15,7 +15,8 @@ tests() ->
       check_analytics(),
       check_get_analytics(),
       check_remove_analytics(),
-      check_analytics_lookup()] } ].
+      check_analytics_lookup(),
+      init_many_shortcodes()] } ].
 
 check_start() ->
   [{"start1",
@@ -121,7 +122,7 @@ delete() ->
         {ok, S} = emoji:start(Initial),
         emoji:alias(S, "smiley", "other"),
         emoji:delete(S, "other"),
-        ?assertEqual(no_emoji, emoji:lookup(S, "smiley")), 
+        ?assertEqual(no_emoji, emoji:lookup(S, "smiley")),
         ?assertEqual(no_emoji, emoji:lookup(S, "other"))
       end },
     {"delete4",
@@ -327,3 +328,50 @@ check_analytics_lookup() ->
         ?assertMatch({ok, [{"Throw", 1}, {"Add", 1}]}, emoji:get_analytics(S, "smileyAlias")),
         ?assertMatch({ok, [{"Throw", 1}, {"Add", 1}]}, emoji:get_analytics(S, "smiley"))
       end }].
+
+inqueryTimes(S, N) ->
+  case N of
+    0 -> 0;
+    _ ->
+      ?assertEqual({ok, <<"😠"/utf8>>}, emoji:lookup(S, "angry")),
+      inqueryTimes(S, N-1)
+  end.
+
+inqueryMediumTimes(S, N) ->
+  case N of
+    0 -> 0;
+    _ ->
+      ?assertEqual({ok, <<240,159,155,179>>}, emoji:lookup(S, "passenger ship")),
+      inqueryMediumTimes(S, N-1)
+  end.
+
+
+
+
+init_many_shortcodes() ->
+  [
+    {"small_dataset_inquery10000times",
+      fun () ->
+        Initial = someemoji:small(),
+        {ok, S} = emoji:start(Initial),
+        inqueryTimes(S, 10000)
+      end},
+    {"medium_dataset_inquery10000times",
+      fun () ->
+        Initial = someemoji:medium(),
+        {ok, S} = emoji:start(Initial),
+        inqueryMediumTimes(S, 10000)
+      end},
+    {"medium_dataset",
+      fun () ->
+        Initial = someemoji:medium(),
+        {ok, S} = emoji:start(Initial),
+        emoji:lookup(S, "passenger ship"),
+        ?assertMatch({ok, []}, emoji:get_analytics(S, "passenger ship")),
+        ?assertEqual({ok, <<240,159,155,179>>}, emoji:lookup(S, "passenger ship")),
+        emoji:delete(S, "control knobs"),
+        ?assertMatch(no_emoji, emoji:lookup(S, "control knobs")),
+        ?assertEqual({ok, <<240,159,153,141,240,159,143,189,226,128,141,226,153,128,239,184,143>>},
+          emoji:lookup(S, "woman frowning: medium skin tone"))
+      end}
+    ].

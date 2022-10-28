@@ -4,10 +4,6 @@
   analytics/5, get_analytics/2, remove_analytics/3,
   stop/1]).
 
--type shortcode() :: string().
--type emoji() :: binary().
--type analytic_fun(State) :: fun((shortcode(), State) -> State).
-
 %% Time Complexity is O(n) rather than O(n^2)
 -spec checkDuplicate(List :: list()) -> boolean().
 checkDuplicate(List) ->
@@ -37,7 +33,6 @@ start(Initial) ->
       end
   end.
 
--spec new_shortcode(E :: pid(), Short :: shortcode(), Emo :: emoji()) -> any().
 new_shortcode(E, Short, Emo) ->
   E ! {self(), new_shortcode, Short, Emo},
   receive
@@ -45,7 +40,6 @@ new_shortcode(E, Short, Emo) ->
     {E, {error, Reason}} -> {error, Reason}
   end.
 
--spec alias(E :: pid(), Short :: shortcode(), Emo :: emoji()) -> any().
 alias(E, ShortCode1, ShortCode2) ->
   E ! {self(), alias, ShortCode1, ShortCode2},
   receive
@@ -53,12 +47,10 @@ alias(E, ShortCode1, ShortCode2) ->
     {E, {error, Reason}} -> {error, Reason}
   end.
 
--spec delete(E :: pid(), Short :: shortcode()) -> any().
 delete(E, Short) ->
   E ! {self(), delete, Short},
   ok.
 
--spec lookup(E :: pid(), Short :: shortcode()) -> any().
 lookup(E, Short) ->
   E ! {self(), lookup, Short},
   receive
@@ -66,7 +58,6 @@ lookup(E, Short) ->
     {E, no_emoji} -> no_emoji
   end.
 
--spec analytics(E :: pid(), Short :: shortcode(), Fun :: analytic_fun(State :: any()), Label :: string(), State :: any()) -> any().
 analytics(E, Short, Fun, Label, Init) ->
   E ! {self(), analytics, Short, Fun, Label, Init},
   receive
@@ -74,7 +65,6 @@ analytics(E, Short, Fun, Label, Init) ->
     {E, {error, Reason}} -> {error, Reason}
   end.
 
--spec get_analytics(E :: pid(), Short :: shortcode()) -> any().
 get_analytics(E, Short) ->
   E ! {self(), get_analytics, Short},
   receive
@@ -82,11 +72,9 @@ get_analytics(E, Short) ->
     {E, {error, Reason}} -> {error, Reason}
   end.
 
--spec remove_analytics(E :: pid(), Short :: shortcode(), Label :: string()) -> any().
 remove_analytics(E, Short, Label) ->
   E ! {self(), remove_analytics, Short, Label}.
 
--spec stop(E :: pid()) -> any().
 stop(E) ->
   E ! {self(), stop},
   receive
